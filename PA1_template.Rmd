@@ -4,22 +4,114 @@ output:
   html_document:
     keep_md: true
 ---
+#Introduction
+
+It is now possible to collect a large amount of data about personal movement using activity monitoring devices such as a Fitbit, Nike Fuelband, or Jawbone Up. These type of devices are part of the "quantified self" movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. But these data remain under-utilized both because the raw data are hard to obtain and there is a lack of statistical methods and software for processing and interpreting the data.
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+The analysis uses the dplyr and ggplot2 packages.
+```{r libraries, message = FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+## Load and Process the Data
+1. Download and unzip the the orignal data:
+```{r}
+download.file(url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", destfile = "dataset.zip")
+    unzip("dataset.zip")
+```
+
+2. Read the data and view summary stats:
+```{r readdata}
+activityraw <- read.csv(file = "activity.csv", na.strings = "NA")
+summary(activityraw)
+str(activityraw)
+```
+
+##What is mean total number of steps taken per day?
+```{r getmeanandmedian}
+meandays <- group_by(activityraw, date)
+meandays <- summarize(meandays, steps = mean(steps, na.rm = TRUE))
+mean <- summarize(meandays, steps = mean(steps, na.rm = TRUE))
+median <- summarize(meandays, steps = median(steps, na.rm = TRUE))
+```
+- The mean number of steps per day is `r mean`.
+- The median number of steps per day is `r median`.
+
+Here is a histogram of the total number of steps per day:
+```{r ggplothistogram}
+qplot(steps, data = meandays, binwidth = 2, main = "Frequency of Number of Steps per Day")
+```
+
+##What is the average daily activity pattern?
+1. Let's see a time series of steps over different intervals:
+```{r activtypattern}
+avgintervalalldays <- group_by(activityraw, interval)
+avgintervalalldays <- summarize(avgintervalalldays, mean(steps, na.rm = TRUE))
+# Rename column two to "avgsteps"
+names(avgintervalalldays)[2] <- "avgsteps"
+
+str(avgintervalalldays)
+g <- ggplot(avgintervalalldays, aes(interval, avgsteps)) + xlab("Interval") + ylab("Avg Steps") + ggtitle("Time Series: Avg Steps over Each Interval, All Days")
+g + geom_point(alpha = 1/2) + geom_line() + geom_smooth(method = "loess")
+
+maxsteps <- max(avgintervalalldays$avgsteps, na.rm = TRUE)
+
+agg <- aggregate(avgsteps ~ interval, avgintervalalldays, max)
+maxinterval <- merge(agg, avgintervalalldays)
+maxinterval <- filter(maxinterval, avgsteps == maxsteps)
+maxinterval <- maxinterval[1,1]
+```
+
+2. The interval with the maximum number of steps averaged over all the days is **`r maxinterval`**, with a maximum number of average steps of **`r maxsteps`**.
+
+## Imputing Missing Values
+Missing days may introduce bias into some calculations or summaries of the data.
+```{r nummissingvalues}
+missingsteps <- sum(is.na(activityraw))
+```
+1. There are **`r missingsteps`** intervals with no steps recorded (ie. NA values).
+
+2. We will replace NAs with the average steps over the interval for all days.
+
+3.1. Merge oringal data and average steps by interval data:
+```{r mergedataformissingvalues}
+
+merged <- merge(activityraw,avgintervalalldays,by.x="interval",by.y="interval")
+head(merged, 3)
+```
+3.2. Replace NA values with average steps per interval.
+```{r replacemissingvalues}
+naindex <- is.na(merged$steps)
+merged$steps[naindex] <-merged$avgsteps[naindex]
+head(merged, 3)
+```
+
+4. Make a histogram of the total number of steps taken each day.
+```{r newmean}
+meandays <- group_by(merged, date)
+meandays <- summarize(meandays, steps = mean(steps, na.rm = TRUE))
+mean <- summarize(meandays, steps = mean(steps, na.rm = TRUE))
+median <- summarize(meandays, steps = median(steps, na.rm = TRUE))
+```
+- The new mean number of steps per day is `r mean`.
+- The new median number of steps per day is `r median`.
+
+Here is a histogram of the total number of steps per day:
+```{r newhistogram}
+qplot(steps, data = meandays, binwidth = 2, main = "New Frequency of Number of Steps per Day \n After Replacing NA values with Avg Steps per Interval")
+```
+Original data histogram:
+```{r origggplothistogram}
+qplot(steps, data = meandays, binwidth = 2, main = "Frequency of Number of Steps per Day")
+```
+
+Do these values differ from the estimates from the first part of the assignment? Not really.
+
+What is the impact of imputing missing data on the estimates of the total daily number of steps?  The median is now equal to the mean.
+
+##Are there differences in activity patterns between weekdays and weekends?
 
 
-## Loading and preprocessing the data
-
-
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
