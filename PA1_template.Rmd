@@ -1,8 +1,6 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template"
+output: html_document
 ---
 #Introduction
 
@@ -18,35 +16,36 @@ library(ggplot2)
 
 ## Load and Process the Data
 1. Download and unzip the the orignal data:
-```{r}
+```{r downloaddata}
 download.file(url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", destfile = "dataset.zip")
-    unzip("dataset.zip")
+unzip("dataset.zip")
 ```
 
 2. Read the data and view summary stats:
 ```{r readdata}
-activityraw <- read.csv(file = "activity.csv", na.strings = "NA")
+activityraw <- read.csv(file = "activity.csv", na.strings = "NA", colClasses = c(NA,"Date",NA))
 summary(activityraw)
 str(activityraw)
 ```
 
-##What is mean total number of steps taken per day?
+##What is the mean total number of steps taken per day?
 ```{r getmeanandmedian}
 meandays <- group_by(activityraw, date)
 meandays <- summarize(meandays, steps = mean(steps, na.rm = TRUE))
 mean <- summarize(meandays, steps = mean(steps, na.rm = TRUE))
 median <- summarize(meandays, steps = median(steps, na.rm = TRUE))
 ```
-- The mean number of steps per day is `r mean`.
-- The median number of steps per day is `r median`.
 
 Here is a histogram of the total number of steps per day:
 ```{r ggplothistogram}
 qplot(steps, data = meandays, binwidth = 2, main = "Frequency of Number of Steps per Day")
 ```
 
+- The mean number of steps per day is `r mean`.
+- The median number of steps per day is `r median`.
+
 ##What is the average daily activity pattern?
-1. Let's see a time series of steps over different intervals:
+1. Let's see a time series of steps over the 5-minute intervals:
 ```{r activtypattern}
 avgintervalalldays <- group_by(activityraw, interval)
 avgintervalalldays <- summarize(avgintervalalldays, mean(steps, na.rm = TRUE))
@@ -65,7 +64,7 @@ maxinterval <- filter(maxinterval, avgsteps == maxsteps)
 maxinterval <- maxinterval[1,1]
 ```
 
-2. The interval with the maximum number of steps averaged over all the days is **`r maxinterval`**, with a maximum number of average steps of **`r maxsteps`**.
+2. The interval with the maximum number of steps averaged over all the days is **`r maxinterval`**, with a maximum number of average steps of **`r maxsteps`** during that interval.
 
 ## Imputing Missing Values
 Missing days may introduce bias into some calculations or summaries of the data.
@@ -103,15 +102,24 @@ Here is a histogram of the total number of steps per day:
 ```{r newhistogram}
 qplot(steps, data = meandays, binwidth = 2, main = "New Frequency of Number of Steps per Day \n After Replacing NA values with Avg Steps per Interval")
 ```
+
 Original data histogram:
 ```{r origggplothistogram}
 qplot(steps, data = meandays, binwidth = 2, main = "Frequency of Number of Steps per Day")
 ```
 
-Do these values differ from the estimates from the first part of the assignment? Not really.
+Do these values differ from the estimates from the first part of the assignment? slightly.
 
 What is the impact of imputing missing data on the estimates of the total daily number of steps?  The median is now equal to the mean.
 
 ##Are there differences in activity patterns between weekdays and weekends?
+This individual takes more steps per interval on weekdays than on weekends.
+```{r weekends}
+weekendlist <- c('Saturday','Sunday')
+merged$weekend <- factor((weekdays(merged$date) %in% weekendlist), levels=c(TRUE, FALSE), labels = c('weekend','weekday'))
+head(merged,10)
 
+library(lattice)
+xyplot(steps ~ interval | weekend, data = merged, layout = c(1, 2), main="Steps Taken: Weekends vs. Weekdays")
+```
 
